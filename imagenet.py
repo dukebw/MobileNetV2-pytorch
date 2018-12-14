@@ -119,6 +119,8 @@ def main():
     print(model)
     print('number of parameters: {}'.format(num_parameters))
     print('FLOPs: {}'.format(
+        # NOTE(brendan): adds forward hooks to all the model's modules to count
+        # FLOPs by running a minibatch of random data.
         flops_benchmark.count_flops(MobileNet2,
                                     args.batch_size // len(args.gpus) if args.gpus is not None else args.batch_size,
                                     device, dtype, args.input_size, 3, args.scaling)))
@@ -135,11 +137,13 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), args.learning_rate, momentum=args.momentum, weight_decay=args.decay,
                                 nesterov=True)
     if args.find_clr:
+        # NOTE(brendan): to tune hyperparameters?
         find_bounds_clr(model, train_loader, optimizer, criterion, device, dtype, min_lr=args.min_lr,
                         max_lr=args.max_lr, step_size=args.epochs_per_step * len(train_loader), mode=args.mode,
                         save_path=save_path)
         return
 
+    # TODO(brendan): is this set by default or no?
     if args.clr:
         scheduler = CyclicLR(optimizer, base_lr=args.min_lr, max_lr=args.max_lr,
                              step_size=args.epochs_per_step * len(train_loader), mode=args.mode)
